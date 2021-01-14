@@ -1,7 +1,5 @@
 import pygame
 
-# 123
-
 pygame.init()
 
 win_width = 1300
@@ -11,28 +9,8 @@ win = pygame.display.set_mode((win_width, win_height))
 
 pygame.display.set_caption('not one spoilers')
 
-sound = pygame.mixer.music.load("sounds/tra.wav")
-pygame.mixer.music.set_volume(0.4)
-pygame.mixer.music.play(loops=-1)
-
 # загрузка спрайтов
-left_stand = [pygame.image.load('stand/stand_left_1.png')]
 
-right_stand = [pygame.image.load('stand/stand_right_1.png')]
-
-right_walk = [pygame.image.load('walk/walk_right_1.png'),
-              pygame.image.load('walk/walk_right_2.png'),
-              pygame.image.load('walk/walk_right_3.png'),
-              pygame.image.load('walk/walk_right_4.png'),
-              pygame.image.load('walk/walk_right_5.png'),
-              pygame.image.load('walk/walk_right_6.png')]
-    
-left_walk = [pygame.image.load('walk/walk_left_1.png'),
-             pygame.image.load('walk/walk_left_2.png'),
-             pygame.image.load('walk/walk_left_3.png'),
-             pygame.image.load('walk/walk_left_4.png'),
-             pygame.image.load('walk/walk_left_5.png'),
-             pygame.image.load('walk/walk_left_6.png')]
 
 # параметры персонажа
 width = 80
@@ -57,38 +35,20 @@ shadow_cloning = False
 clon_x = x
 clon_y = y
 
-right_walk = [pygame.transform.scale(picture, (width, height)) for picture in right_walk]
-left_walk = [pygame.transform.scale(picture, (width, height)) for picture in left_walk]
-right_stand = [pygame.transform.scale(picture, (width, height)) for picture in right_stand]
-left_stand = [pygame.transform.scale(picture, (width, height)) for picture in left_stand]
-
 # рисующая функция
 def draw():
     global anim_cnt, shadow_cloning
     
     win.fill((0, 100, 255))
     #хитбокс персонажа
-    #pygame.draw.rect(win, (0, 255, 0), (x, y, width, height))
+    pygame.draw.rect(win, (0, 255, 0), (x, y, width, height))
     
-    if anim_cnt >= 30:
-        anim_cnt = 0
-        
-    if left:
-        win.blit(left_walk[anim_cnt // 5], (x, y))
-        anim_cnt += 1
-    elif right:
-        win.blit(right_walk[anim_cnt // 5], (x, y))
-        anim_cnt += 1
-    else:
-        if last_move == 'right':
-            win.blit(right_stand[0], (x, y))
-        if last_move == 'left':
-            win.blit(left_stand[0], (x, y))
     
-    #if shadow_cloning:
+    if shadow_cloning:
         #win.blit(right_walk[anim_cnt // 5], (clon_x, clon_y))
         #anim_cnt += 1
-            
+        pygame.draw.rect(win, (255, 0, 0), (clon_x, clon_y, width, height))
+        
     pygame.display.update()
     
 while work:
@@ -99,6 +59,7 @@ while work:
     
     # список клавиш
     keys = pygame.key.get_pressed()
+        
     # отслеживание нажатий и выполнение действий
     if not in_the_air:
         if keys[pygame.K_LSHIFT]:
@@ -131,9 +92,16 @@ while work:
         if keys[pygame.K_SPACE] or keys[pygame.K_w]:
             in_the_air = True
         
-        #if keys[pygame.K_DOWN] and clon_x < win_width - width - 5:
-            #shadow_cloning = True
-            #clon_x += 15
+        if keys[pygame.K_DOWN]:
+            clon_x = x
+            clon_y = y            
+            shadow_cloning = True
+        
+        if keys[pygame.K_RIGHT] and clon_x < win_width - width - 5:
+            clon_x += 15
+        
+        if keys[pygame.K_LEFT] and clon_x > 5:
+            clon_x -= 15
         
 
     else:
@@ -155,5 +123,3 @@ while work:
     draw()
     
 pygame.quit()
-    
-        
