@@ -2,6 +2,8 @@ import pygame
 
 pygame.init()
 
+show = True
+
 win_width = 1600
 win_height = 984
 platform_width = 201
@@ -11,9 +13,8 @@ win = pygame.display.set_mode((win_width, win_height))
 
 pygame.display.set_caption('not one spoilers')
 
-#sound = pygame.mixer.Sound("sounds/tra.wav")
-#sound.set_volume(0.3)
-#sound.play(loops=-1)
+sound = pygame.mixer.Sound("sounds/tra.wav")
+sound.set_volume(0.3)
 
 fail = pygame.mixer.Sound("sounds/no one.mp3")
 fail.set_volume(0.3)
@@ -21,15 +22,22 @@ fail.set_volume(0.3)
 run_sound = pygame.mixer.Sound("sounds/run.mp3")
 
 throw_sound = pygame.mixer.Sound("sounds/throw_sound.mp3")
+throw_sound.set_volume(0.3)
+
+pause = pygame.mixer.Sound("sounds/pause.mp3")
+pause.set_volume(0.2)
+
+play_music = 1
 
 level = [
-       '                         ',
-       '                         ',
-       '                         ',
-       '                         ',
-       '    -                    ',
-       '                         ',
-       '-------------------------']
+       '        '
+       '        ',
+       '      - ',
+       '        ',
+       '  -     ',
+       '      - ',
+       '        ',
+       '--------']
 
 # загрузка спрайтов
 bg = pygame.image.load('texture/bg.jpg')
@@ -128,7 +136,172 @@ platform_ = pygame.transform.scale(platform, (platform_width, platform_height))
 right_throw = [pygame.transform.scale(picture, (104, 100)) for picture in right_throw]
 left_throw = [pygame.transform.scale(picture, (104, 100)) for picture in left_throw]
 
-#класс сурикена
+def music():
+    global play_music
+    play_music *= -1
+    
+    if play_music == 1:
+        sound.play(loops=-1)
+    else:
+        sound.stop()    
+    
+def start_game():
+    global stand, clon_y, anim_cnt, shadow_cloning, run, work, throwing, in_the_air, x, y
+    global win_width, win_height, clon_x, xlon_y, jump_count, bullets, right, left, last_move
+    global clon_left, clon_right, clon_last_move
+    while work:
+        clock.tick(30)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                work = False
+        
+        for bullet in bullets:
+            if bullet.x < win_width and bullet.x > 0:
+                bullet.x += bullet.vel
+            else:
+                bullets.pop(bullets.index(bullet))
+                
+        # список клавиш
+        keys = pygame.key.get_pressed()
+        # отслеживание нажатий и выполнение действий
+        
+        if not throwing:
+            if keys[pygame.K_LCTRL]:
+                if len(bullets) == 3:
+                    fail.play(loops=1)
+                else:
+                    throw_sound.play(loops=1)
+                throwing = True
+                if last_move == 'right':
+                    facing = 1
+                else:
+                    facing = -1
+                if len(bullets) < 3:
+                    bullets.append(Shuriken(round(x + width // 2), round(y + 25), 5, facing))
+            
+        if not in_the_air:
+            if keys[pygame.K_LSHIFT]:
+                speed = 15
+                run = True
+            else:
+                speed = 5
+                run = False
+                
+            if keys[pygame.K_a] and x > 5:
+                x -= speed
+                left = True
+                right = False
+                last_move = 'left'
+                stand = False
+                    
+            elif keys[pygame.K_d] and x < win_width - width - 5:
+                x += speed
+                right = True
+                left = False
+                last_move = 'right'
+                stand = False
+                    
+            else:
+                right = False
+                left = False
+                stand = True
+                anim_cnt = 0
+                
+            if keys[pygame.K_SPACE] or keys[pygame.K_w]:
+                in_the_air = True
+        else:
+            # прыжок
+            if jump_count >= -10:
+                if jump_count < 0:
+                    y += (jump_count ** 2) / 2
+                else:
+                    y -= (jump_count ** 2) / 2
+                jump_count -= 1
+            else:
+                in_the_air = False
+                jump_count = 10
+                
+            if left == True and x > 5:
+                x -= speed
+            elif right == True and x < win_width - width - 5:
+                x += speed
+        if keys[pygame.K_DOWN]:
+            clon_x = x + 46
+            clon_y = y                
+            shadow_cloning = True
+        
+        elif keys[pygame.K_RCTRL]:
+            shadow_cloning = False
+        
+        if keys[pygame.K_RIGHT] and clon_x < win_width - width - 5:
+            clon_x += clon_speed
+            clon_right = True
+            clon_left = False
+            clon_last_move = 'right'
+            
+        elif keys[pygame.K_LEFT] and clon_x > 5:
+            clon_x -= clon_speed
+            clon_left = True
+            clon_right = False
+            clon_last_move = 'left'
+            
+        else:
+            clon_left = False
+            clon_right = False
+        draw()
+
+class Button:
+    def __init__(self, w, h):
+        self.w = w
+        self.h = h
+        self.inactive_color = (13, 162, 58)
+        self.active_color = (23, 204, 58)
+   
+    def draw(self, x_btn, y_btn, action=None):
+        global show
+        mouse = pygame.mouse.get_pos()
+        click = pygame.mouse.get_pressed()
+        
+        if x_btn < mouse[0] < x_btn + self.w and y_btn < mouse[1] > y_btn - self.h:
+            if y_btn < mouse[1] < y_btn + self.h:
+                pygame.draw.rect(win, self.active_color, (x_btn, y_btn, self.w, self.h))
+                if click[0] == 1:
+                    pause.play(loops=1)
+                    pygame.time.delay(300)
+                    if action is not None:
+                        if action == quit:
+                            quit()
+                            pygame.quit()
+                            show = False
+                        else:
+                            action()
+                            show = False
+        else:
+            pygame.draw.rect(win, self.inactive_color, (x_btn, y_btn, self.w, self.h))
+            
+def show_menu():
+    global show
+    menu_bg = pygame.image.load('menu/menu_image.jpg')
+    menu_bg = pygame.transform.scale(menu_bg, (win_width, win_height))
+    
+    start_btn = Button(300, 70)
+    quit_btn = Button(200, 50)
+    
+    sound.play(loops=-1)
+    while show:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+        
+        win.blit(menu_bg, (0, 0))
+        start_btn.draw(win_width // 2 - 200, win_height // 2 - 70, start_game)
+        quit_btn.draw(win_width // 2 - 160, win_height // 2 + 100, quit)
+        pygame.display.update()
+        clock.tick(60)
+        
+#класс куная
 class Shuriken():
     def __init__(self, x, y, radius, facing):
         self.snaryad_right = pygame.image.load('throw/shuriken_left.png')
@@ -149,6 +322,7 @@ class Shuriken():
             
 # рисующая функция
 def draw():
+    off_sound_btn = Button(50, 50)
     global anim_cnt, clon_anim_cnt, cloning_anim_cnt
     global cloning_anim_cnt, clon_speed, throw_anim_cnt
     global throwing
@@ -237,113 +411,11 @@ def draw():
                     win.blit(left_stand[0], (clon_x, clon_y))
     else:
         cloning_anim_cnt = 0
-            
+    off_sound_btn.draw(20, 20, music)
     pygame.display.update()
+        
+show_menu()
 
-#def check_collision():
-    
-
-while work:
-    clock.tick(30)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            work = False
-    
-    for bullet in bullets:
-        if bullet.x < win_width and bullet.x > 0:
-            bullet.x += bullet.vel
-        else:
-            bullets.pop(bullets.index(bullet))
-            
-    # список клавиш
-    keys = pygame.key.get_pressed()
-    # отслеживание нажатий и выполнение действий
-    
-    if not throwing:
-        if keys[pygame.K_LCTRL]:
-            if len(bullets) == 3:
-                fail.play(loops=1)
-            else:
-                throw_sound.play(loops=1)
-            throwing = True
-            if last_move == 'right':
-                facing = 1
-            else:
-                facing = -1
-            if len(bullets) < 3:
-                bullets.append(Shuriken(round(x + width // 2), round(y + 25), 5, facing))
-        
-    if not in_the_air:
-        if keys[pygame.K_LSHIFT]:
-            speed = 15
-            run = True
-        else:
-            speed = 5
-            run = False
-            
-        if keys[pygame.K_a] and x > 5:
-            x -= speed
-            left = True
-            right = False
-            last_move = 'left'
-            stand = False
-                
-        elif keys[pygame.K_d] and x < win_width - width - 5:
-            x += speed
-            right = True
-            left = False
-            last_move = 'right'
-            stand = False
-                
-        else:
-            right = False
-            left = False
-            stand = True
-            anim_cnt = 0
-            
-        if keys[pygame.K_SPACE] or keys[pygame.K_w]:
-            in_the_air = True
-    else:
-        # прыжок
-        if jump_count >= -10:
-            if jump_count < 0:
-                y += (jump_count ** 2) / 2
-            else:
-                y -= (jump_count ** 2) / 2
-            jump_count -= 1
-        else:
-            in_the_air = False
-            jump_count = 10
-            
-        if left == True and x > 5:
-            x -= speed
-        elif right == True and x < win_width - width - 5:
-            x += speed
-    if keys[pygame.K_DOWN]:
-        clon_x = x + 46
-        clon_y = y                
-        shadow_cloning = True
-    
-    elif keys[pygame.K_RCTRL]:
-        shadow_cloning = False
-    
-    if keys[pygame.K_RIGHT] and clon_x < win_width - width - 5:
-        clon_x += clon_speed
-        clon_right = True
-        clon_left = False
-        clon_last_move = 'right'
-        
-    elif keys[pygame.K_LEFT] and clon_x > 5:
-        clon_x -= clon_speed
-        clon_left = True
-        clon_right = False
-        clon_last_move = 'left'
-        
-    else:
-        clon_left = False
-        clon_right = False
-    draw()
-    
 class Platform(pygame.sprite.Sprite):
     images = ['platform_1.png']
     # Конструктор класса платформ
