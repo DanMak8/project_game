@@ -4,6 +4,12 @@ pygame.init()
 
 show = True
 
+font = pygame.font.SysFont('arialblack', 40)
+mus = pygame.font.SysFont('arialblack', 20)
+start_text = font.render('start', 1, (0, 0, 0))
+quit_text = font.render('quit', 1, (0, 0, 0))
+music_text = mus.render('mus', 1, (0, 0, 0))
+
 win_width = 1600
 win_height = 984
 platform_width = 201
@@ -27,15 +33,19 @@ throw_sound.set_volume(0.3)
 pause = pygame.mixer.Sound("sounds/pause.mp3")
 pause.set_volume(0.2)
 
+sasuke = pygame.mixer.Sound("sounds/sasukeeee.wav")
+sasuke.set_volume(0.5)
+
+
 play_music = 1
 
 level = [
        '        '
        '        ',
-       '      - ',
        '        ',
-       '  -     ',
-       '      - ',
+       '        ',
+       '        ',
+       '-      -',
        '        ',
        '--------']
 
@@ -90,6 +100,18 @@ left_throw = [pygame.image.load('throw/left_throw_1.png'),
              pygame.image.load('throw/left_throw_2.png'),
              pygame.image.load('throw/left_throw_3.png')]
 
+sasuke_left = [pygame.image.load('enemy/sasuke_left_1.png'),
+               pygame.image.load('enemy/sasuke_left_2.png'),
+               pygame.image.load('enemy/sasuke_left_3.png'),
+               pygame.image.load('enemy/sasuke_left_4.png'),
+               pygame.image.load('enemy/sasuke_left_5.png')]
+
+sasuke_right = [pygame.image.load('enemy/sasuke_right_1.png'),
+                pygame.image.load('enemy/sasuke_right_2.png'),
+                pygame.image.load('enemy/sasuke_right_3.png'),
+                pygame.image.load('enemy/sasuke_right_4.png'),
+                pygame.image.load('enemy/sasuke_right_5.png')]
+
 # параметры персонажа
 width = 80
 height = 108
@@ -107,6 +129,14 @@ anim_cnt = 0
 
 last_move = 'right'
 work = True
+
+#параметры врага
+sasuke_width = 127
+sasuke_height = 135
+sasuke_x = 1450
+sasuke_y = 600
+shot = False
+sasuke_anim_cnt = 0
 
 # техники
 shadow_cloning = False
@@ -135,6 +165,8 @@ bg = pygame.transform.scale(bg, (win_width, win_height))
 platform_ = pygame.transform.scale(platform, (platform_width, platform_height))
 right_throw = [pygame.transform.scale(picture, (104, 100)) for picture in right_throw]
 left_throw = [pygame.transform.scale(picture, (104, 100)) for picture in left_throw]
+sasuke_right = [pygame.transform.scale(picture, (sasuke_width, sasuke_height)) for picture in sasuke_right]
+sasuke_left = [pygame.transform.scale(picture, (sasuke_width, sasuke_height)) for picture in sasuke_left]
 
 def music():
     global play_music
@@ -148,7 +180,8 @@ def music():
 def start_game():
     global stand, clon_y, anim_cnt, shadow_cloning, run, work, throwing, in_the_air, x, y
     global win_width, win_height, clon_x, xlon_y, jump_count, bullets, right, left, last_move
-    global clon_left, clon_right, clon_last_move
+    global clon_left, clon_right, clon_last_move, sasuke_x, sasuke_y, sasuke_height, sasuke_width
+    global shot, health
     while work:
         clock.tick(30)
         
@@ -161,6 +194,8 @@ def start_game():
                 bullet.x += bullet.vel
             else:
                 bullets.pop(bullets.index(bullet))
+            if bullet.x > sasuke_x and bullet.y > sasuke_y < sasuke_y + sasuke_height and bullet.y < sasuke_y + sasuke_height + 20:
+                shot = True
                 
         # список клавиш
         keys = pygame.key.get_pressed()
@@ -281,7 +316,7 @@ class Button:
             pygame.draw.rect(win, self.inactive_color, (x_btn, y_btn, self.w, self.h))
             
 def show_menu():
-    global show
+    global show, start_text
     menu_bg = pygame.image.load('menu/menu_image.jpg')
     menu_bg = pygame.transform.scale(menu_bg, (win_width, win_height))
     
@@ -298,8 +333,10 @@ def show_menu():
         win.blit(menu_bg, (0, 0))
         start_btn.draw(win_width // 2 - 200, win_height // 2 - 70, start_game)
         quit_btn.draw(win_width // 2 - 160, win_height // 2 + 100, quit)
-        pygame.display.update()
         clock.tick(60)
+        win.blit(start_text, (win_width // 2 - 115, win_height // 2 - 60))
+        win.blit(quit_text, (win_width // 2 - 105, win_height // 2 + 90))
+        pygame.display.update()
         
 #класс куная
 class Shuriken():
@@ -312,7 +349,7 @@ class Shuriken():
         self.y = y
         self.radius = radius
         self.facing = facing
-        self.vel = 12 * facing
+        self.vel = 20 * facing
         
     def draw_shur(self, win):
         if self.facing == -1:
@@ -325,7 +362,7 @@ def draw():
     off_sound_btn = Button(50, 50)
     global anim_cnt, clon_anim_cnt, cloning_anim_cnt
     global cloning_anim_cnt, clon_speed, throw_anim_cnt
-    global throwing
+    global throwing, health, shot, sasuke_anim_cnt
     
     win.blit(bg, (0, 0))
     
@@ -356,14 +393,12 @@ def draw():
             if last_move == 'right':
                 win.blit(right_throw[throw_anim_cnt // 3], (x, y))
                 throw_anim_cnt += 1
-                print(throw_anim_cnt)
             else:
                 win.blit(left_throw[throw_anim_cnt // 3], (x, y))
                 throw_anim_cnt += 1
         else:
             throwing = False
             throw_anim_cnt = 0
-            print('готово')
     else:   
         if run:
             if right:
@@ -412,6 +447,15 @@ def draw():
     else:
         cloning_anim_cnt = 0
     off_sound_btn.draw(20, 20, music)
+    if not shot:
+        win.blit(sasuke_left[0], (sasuke_x, sasuke_y))
+    else:
+        if sasuke_anim_cnt != 25:
+            win.blit(sasuke_left[sasuke_anim_cnt // 5], (sasuke_x, sasuke_y))
+            sasuke_anim_cnt += 1
+        else:
+            win.blit(sasuke_left[4], (sasuke_x, sasuke_y))
+    win.blit(music_text, (22, 25))
     pygame.display.update()
         
 show_menu()
