@@ -1,0 +1,6 @@
+click==7.1.2
+DateTime==4.3
+pygame==2.0.0
+python-dotenv==0.15.0
+pytz==2019.3
+zope.interface==5.1.0
